@@ -25,7 +25,6 @@ android {
 
     }
 
-
     // 执行配置
     applicationVariants.all { variant ->
 
@@ -39,31 +38,12 @@ android {
         }
     }
 
-
     packagingOptions {
         exclude 'META-INF/DEPENDENCIES'
     }
 
-    signingConfigs {
-        config {
-            keyAlias 'key0'
-            keyPassword '123456'
-            storeFile file('test.jks')
-            storePassword '123456'
-            v1SigningEnabled true
-            v2SigningEnabled true
-        }
-    }
-
-
     buildTypes {
-        debug {
-            signingConfig signingConfigs.config
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            minifyEnabled false
-        }
         release {
-            signingConfig signingConfigs.config
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             minifyEnabled true
         }
