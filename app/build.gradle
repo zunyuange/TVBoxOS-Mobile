@@ -25,6 +25,21 @@ android {
 
     }
 
+    signingConfigs {
+        release {
+            storeFile file('..\\TVBoxOSC.jks')
+            storePassword 'TVBoxOSC'
+            keyAlias = 'TVBoxOSC'
+            keyPassword 'TVBoxOSC'
+        }
+        debug {
+            storeFile file('..\\TVBoxOSC.jks')
+            storePassword 'TVBoxOSC'
+            keyAlias = 'TVBoxOSC'
+            keyPassword 'TVBoxOSC'
+        }
+    }
+
     // 执行配置
     applicationVariants.all { variant ->
 
