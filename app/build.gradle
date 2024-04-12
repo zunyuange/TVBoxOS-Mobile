@@ -129,7 +129,7 @@ dependencies {
     //标题栏
     implementation 'com.github.getActivity:TitleBar:10.5'
     //弹窗
-    implementation 'com.github.li-xiaojun:XPopup:2.9.19'
+    implementation 'com.github.li-xiaojun:XPopup:2.10.0'
     //工具类
     implementation 'com.blankj:utilcodex:1.31.0'
     //阴影/shape/选择器/圆角/...
