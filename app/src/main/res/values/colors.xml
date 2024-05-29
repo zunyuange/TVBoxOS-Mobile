@@ -17,7 +17,8 @@
     <!--    通用颜色-->
     <color name="white">#FFFFFF</color>
     <color name="black">#000000</color>
-    <color name="text_gray">#FF302F2D</color>
+    <color name="text_foreground">#050505</color>
+    <color name="text_sub_foreground">#787878</color>
     <color name="light_gray_color">#e6e6e6</color>
     <!--    警示黄色-->
     <color name="warn">#ffcb6b</color>
