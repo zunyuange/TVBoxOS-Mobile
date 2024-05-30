@@ -8,8 +8,11 @@ import com.github.tvbox.osc.databinding.ActivitySplashBinding
 
 class SplashActivity : BaseVbActivity<ActivitySplashBinding>() {
     override fun init() {
-        startActivity(Intent(this@SplashActivity, MainActivity::class.java))
-        overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
-        finish()
+        mBinding.root.postDelayed({
+            startActivity(Intent(this@SplashActivity, MainActivity::class.java))
+            overridePendingTransition(R.anim.fade_in, R.anim.fade_out)
+            finish()
+        },100)
+
     }
 }
