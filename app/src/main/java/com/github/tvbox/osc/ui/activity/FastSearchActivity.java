@@ -3,7 +3,6 @@ package com.github.tvbox.osc.ui.activity;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.Bundle;
-import android.os.Handler;
 import android.text.Editable;
 import android.text.TextUtils;
 import android.text.TextWatcher;
@@ -11,18 +10,12 @@ import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.inputmethod.EditorInfo;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.lifecycle.ViewModelProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
-import androidx.recyclerview.widget.RecyclerView;
 
 import com.angcyo.tablayout.DslTabLayout;
-import com.angcyo.tablayout.DslTabLayoutConfig;
 import com.blankj.utilcode.util.GsonUtils;
 import com.blankj.utilcode.util.KeyboardUtils;
 import com.blankj.utilcode.util.LogUtils;
@@ -31,22 +24,18 @@ import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.github.catvod.crawler.JsLoader;
 import com.github.tvbox.osc.R;
 import com.github.tvbox.osc.api.ApiConfig;
-import com.github.tvbox.osc.base.BaseActivity;
 import com.github.tvbox.osc.base.BaseVbActivity;
 import com.github.tvbox.osc.bean.AbsXml;
 import com.github.tvbox.osc.bean.Movie;
 import com.github.tvbox.osc.bean.SourceBean;
 import com.github.tvbox.osc.bean.TmdbVodInfo;
-import com.github.tvbox.osc.constant.CacheConst;
 import com.github.tvbox.osc.databinding.ActivityFastSearchBinding;
 import com.github.tvbox.osc.event.RefreshEvent;
 import com.github.tvbox.osc.event.ServerEvent;
-import com.github.tvbox.osc.ui.adapter.FastListAdapter;
 import com.github.tvbox.osc.ui.adapter.FastSearchAdapter;
 import com.github.tvbox.osc.ui.adapter.SearchWordAdapter;
 import com.github.tvbox.osc.ui.dialog.SearchCheckboxDialog;
 import com.github.tvbox.osc.ui.dialog.SearchSuggestionsDialog;
-import com.github.tvbox.osc.ui.dialog.TmdbVodInfoDialog;
 import com.github.tvbox.osc.ui.widget.LinearSpacingItemDecoration;
 import com.github.tvbox.osc.util.FastClickCheckUtil;
 import com.github.tvbox.osc.util.HawkConfig;
@@ -59,37 +48,26 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.lxj.xpopup.XPopup;
 import com.lxj.xpopup.core.BasePopupView;
-import com.lxj.xpopup.enums.PopupAnimation;
 import com.lxj.xpopup.interfaces.OnSelectListener;
 import com.lxj.xpopup.interfaces.SimpleCallback;
 import com.lzy.okgo.OkGo;
 import com.lzy.okgo.callback.AbsCallback;
 import com.lzy.okgo.model.Response;
 import com.orhanobut.hawk.Hawk;
-import com.owen.tvrecyclerview.widget.TvRecyclerView;
-import com.owen.tvrecyclerview.widget.V7LinearLayoutManager;
 import com.zhy.view.flowlayout.FlowLayout;
 import com.zhy.view.flowlayout.TagAdapter;
-import com.zhy.view.flowlayout.TagFlowLayout;
 
-import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
 import org.greenrobot.eventbus.ThreadMode;
 
 import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
-
-import SevenZip.Compression.LZMA.Base;
-import kotlin.Unit;
-import kotlin.jvm.functions.Function1;
-import kotlin.jvm.functions.Function4;
 
 /**
  * @author pj567
@@ -226,21 +204,6 @@ public class FastSearchActivity extends BaseVbActivity<ActivityFastSearchBinding
                     jumpActivity(DetailActivity.class, bundle);
                 }
             }
-        });
-
-        searchAdapter.setOnItemLongClickListener((adapter, view, position) -> {
-            Movie.Video video = searchAdapter.getData().get(position);
-            if (!TextUtils.isEmpty(video.name)){
-                queryFromTMDB(video.name);
-            }
-            return true;
-        });
-        searchAdapterFilter.setOnItemLongClickListener((adapter, view, position) -> {
-            Movie.Video video = searchAdapterFilter.getData().get(position);
-            if (!TextUtils.isEmpty(video.name)){
-                queryFromTMDB(video.name);
-            }
-            return true;
         });
 
         mSearchWordAdapter = new SearchWordAdapter();
@@ -762,53 +725,5 @@ public class FastSearchActivity extends BaseVbActivity<ActivityFastSearchBinding
         }else {
             getSuggest(text);
         }
-    }
-
-    /**
-     * 查询影片在TMDB的信息
-     * @param vodName
-     */
-    private void queryFromTMDB(String vodName){
-        OkGo.getInstance().cancelTag("queryFromTMDB");
-
-        String token = Hawk.get(HawkConfig.TOKEN_TMDB, "");
-        if (TextUtils.isEmpty(token)){
-            return;
-        }
-        showLoadingDialog();
-        OkGo.<String>get("https://api.themoviedb.org/3/search/movie?query="+vodName+"&include_adult=false&language=zh-ZH&page=1")
-                .headers("Authorization","Bearer "+token)
-                .tag("queryFromTMDB")
-                .execute(new AbsCallback<String>() {
-                    @Override
-                    public String convertResponse(okhttp3.Response response) throws Throwable {
-                        if (response.body() != null) {
-                            return response.body().string();
-                        } else {
-                            throw new IllegalStateException("网络请求错误");
-                        }
-                    }
-
-                    @Override
-                    public void onSuccess(Response<String> response) {
-                        dismissLoadingDialog();
-                        String json = response.body();
-                        TmdbVodInfo tmdbVodInfo = GsonUtils.fromJson(json, TmdbVodInfo.class);
-                        List<TmdbVodInfo.ResultsDTO> results = tmdbVodInfo.getResults();
-                        if (results!=null && !results.isEmpty()){
-                            new XPopup.Builder(FastSearchActivity.this)
-                                    .asCustom(new TmdbVodInfoDialog(FastSearchActivity.this,results.get(0)))
-                                    .show();
-                        }else {
-                            ToastUtils.showShort("未查询到相关信息");
-                        }
-                    }
-
-                    @Override
-                    public void onError(Response<String> response) {
-                        super.onError(response);
-                        dismissLoadingDialog();
-                    }
-                });
     }
 }

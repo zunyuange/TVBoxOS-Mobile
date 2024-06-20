@@ -12,6 +12,7 @@ import com.blankj.utilcode.util.ActivityUtils;
 import com.blankj.utilcode.util.ToastUtils;
 import com.github.tvbox.osc.base.BaseLazyFragment;
 import com.github.tvbox.osc.base.BaseVbActivity;
+import com.github.tvbox.osc.constant.IntentKey;
 import com.github.tvbox.osc.databinding.ActivityMainBinding;
 import com.github.tvbox.osc.ui.fragment.GridFragment;
 import com.github.tvbox.osc.ui.fragment.HomeFragment;
@@ -32,7 +33,7 @@ public class MainActivity extends BaseVbActivity<ActivityMainBinding> {
         Intent intent = getIntent();
         if (intent != null && intent.getExtras() != null) {
             Bundle bundle = intent.getExtras();
-            useCacheConfig = bundle.getBoolean("useCache", false);
+            useCacheConfig = bundle.getBoolean(IntentKey.CACHE_CONFIG_CHANGED, false);
         }
 
         initVp();

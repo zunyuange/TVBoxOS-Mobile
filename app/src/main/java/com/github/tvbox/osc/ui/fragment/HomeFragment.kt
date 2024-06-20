@@ -25,6 +25,7 @@ import com.github.tvbox.osc.bean.MovieSort.SortData
 import com.github.tvbox.osc.bean.SourceBean
 import com.github.tvbox.osc.bean.VodInfo
 import com.github.tvbox.osc.cache.RoomDataManger
+import com.github.tvbox.osc.constant.IntentKey
 import com.github.tvbox.osc.databinding.FragmentHomeBinding
 import com.github.tvbox.osc.server.ControlManager
 import com.github.tvbox.osc.ui.activity.CollectActivity
@@ -352,7 +353,7 @@ class HomeFragment : BaseVbFragment<FragmentHomeBinding?>() {
         val intent = Intent(App.getInstance(), MainActivity::class.java)
         intent.setFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
         val bundle = Bundle()
-        bundle.putBoolean("useCache", true)
+        bundle.putBoolean(IntentKey.CACHE_CONFIG_CHANGED, true)
         intent.putExtras(bundle)
         startActivity(intent)
     }
