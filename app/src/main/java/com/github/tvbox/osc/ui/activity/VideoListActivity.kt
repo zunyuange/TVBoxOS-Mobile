@@ -1,170 +1,164 @@
-package com.github.tvbox.osc.ui.activity;
+package com.github.tvbox.osc.ui.activity
 
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.view.View;
+import android.os.Bundle
+import android.os.Handler
+import android.view.View
+import androidx.lifecycle.lifecycleScope
+import com.blankj.utilcode.util.ColorUtils
+import com.blankj.utilcode.util.FileUtils
+import com.blankj.utilcode.util.GsonUtils
+import com.blankj.utilcode.util.SPUtils
+import com.chad.library.adapter.base.BaseQuickAdapter
+import com.github.tvbox.osc.R
+import com.github.tvbox.osc.base.BaseVbActivity
+import com.github.tvbox.osc.bean.VideoInfo
+import com.github.tvbox.osc.constant.CacheConst
+import com.github.tvbox.osc.databinding.ActivityMovieFoldersBinding
+import com.github.tvbox.osc.event.RefreshEvent
+import com.github.tvbox.osc.ui.adapter.LocalVideoAdapter
+import com.github.tvbox.osc.util.FastClickCheckUtil
+import com.github.tvbox.osc.util.Utils
+import com.lxj.xpopup.XPopup
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.util.stream.Collectors
 
-import com.blankj.utilcode.util.ColorUtils;
-import com.blankj.utilcode.util.FileUtils;
-import com.blankj.utilcode.util.GsonUtils;
-import com.blankj.utilcode.util.LogUtils;
-import com.blankj.utilcode.util.SPUtils;
-import com.chad.library.adapter.base.BaseQuickAdapter;
-import com.github.tvbox.osc.R;
-import com.github.tvbox.osc.base.BaseVbActivity;
-import com.github.tvbox.osc.bean.VideoFolder;
-import com.github.tvbox.osc.bean.VideoInfo;
-import com.github.tvbox.osc.cache.RoomDataManger;
-import com.github.tvbox.osc.cache.VodCollect;
-import com.github.tvbox.osc.constant.CacheConst;
-import com.github.tvbox.osc.databinding.ActivityMovieFoldersBinding;
-import com.github.tvbox.osc.event.RefreshEvent;
-import com.github.tvbox.osc.ui.adapter.FolderAdapter;
-import com.github.tvbox.osc.ui.adapter.LocalVideoAdapter;
-import com.github.tvbox.osc.util.FastClickCheckUtil;
-import com.github.tvbox.osc.util.Utils;
-import com.lxj.xpopup.XPopup;
+class VideoListActivity : BaseVbActivity<ActivityMovieFoldersBinding>() {
+    private var mBucketDisplayName = ""
+    private var mLocalVideoAdapter = LocalVideoAdapter()
+    private var mSelectedCount = 0
+    override fun init() {
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
+        mBucketDisplayName = intent.extras?.getString("bucketDisplayName")?:""
 
-public class VideoListActivity extends BaseVbActivity<ActivityMovieFoldersBinding> {
-
-
-    private String mBucketDisplayName;
-    private LocalVideoAdapter mLocalVideoAdapter;
-    private int mSelectedCount = 0;
-
-    @Override
-    protected void init() {
-
-        mBucketDisplayName = getIntent().getExtras().getString("bucketDisplayName");
-        mBinding.titleBar.setTitle(mBucketDisplayName);
-        mLocalVideoAdapter = new LocalVideoAdapter();
-        mBinding.rv.setAdapter(mLocalVideoAdapter);
-        mLocalVideoAdapter.setOnItemClickListener((adapter, view, position) -> {
-            VideoInfo videoInfo = (VideoInfo) adapter.getItem(position);
-            if (mLocalVideoAdapter.isSelectMode()) {
-                videoInfo.setChecked(!videoInfo.isChecked());
-                mLocalVideoAdapter.notifyDataSetChanged();
-            }else {
-                Bundle bundle = new Bundle();
-//                    bundle.putString("path",videoInfo.getPath());
-                bundle.putString("videoList", GsonUtils.toJson(mLocalVideoAdapter.getData()));
-                bundle.putInt("position", position);
-                jumpActivity(LocalPlayActivity.class,bundle);
+        mBinding.titleBar.setTitle(mBucketDisplayName)
+        mBinding.rv.setAdapter(mLocalVideoAdapter)
+        mLocalVideoAdapter.onItemClickListener =
+            BaseQuickAdapter.OnItemClickListener { adapter: BaseQuickAdapter<*, *>, view: View?, position: Int ->
+                val videoInfo = adapter.getItem(position) as VideoInfo?
+                if (mLocalVideoAdapter.isSelectMode) {
+                    videoInfo!!.isChecked = !videoInfo.isChecked
+                    mLocalVideoAdapter.notifyDataSetChanged()
+                } else {
+                    val bundle = Bundle()
+                    //                    bundle.putString("path",videoInfo.getPath());
+                    bundle.putString("videoList", GsonUtils.toJson(mLocalVideoAdapter.data))
+                    bundle.putInt("position", position)
+                    jumpActivity(LocalPlayActivity::class.java, bundle)
+                }
             }
-        });
-
-        mLocalVideoAdapter.setOnItemLongClickListener((adapter, view, position) -> {
-            openListSelectMode(true);
-
-            VideoInfo videoInfo = (VideoInfo) adapter.getItem(position);
-            videoInfo.setChecked(true);
-            mLocalVideoAdapter.notifyDataSetChanged();
-            return true;
-        });
-
-        mBinding.tvAllCheck.setOnClickListener(view -> {//全选
-            FastClickCheckUtil.check(view);
-            for (VideoInfo item : mLocalVideoAdapter.getData()) {
-                item.setChecked(true);
+        mLocalVideoAdapter.onItemLongClickListener =
+            BaseQuickAdapter.OnItemLongClickListener { adapter: BaseQuickAdapter<*, *>, view: View?, position: Int ->
+                toggleListSelectMode(true)
+                val videoInfo = adapter.getItem(position) as VideoInfo?
+                videoInfo!!.isChecked = true
+                mLocalVideoAdapter!!.notifyDataSetChanged()
+                true
             }
-            mLocalVideoAdapter.notifyDataSetChanged();
-        });
 
-        mBinding.tvCancelAllChecked.setOnClickListener(view -> {//取消全选
-            FastClickCheckUtil.check(view);
-            cancelAll();
-        });
-
-        mLocalVideoAdapter.setOnSelectCountListener(count -> {
-            mSelectedCount = count;
-            if (mSelectedCount>0){
-                mBinding.tvDelete.setEnabled(true);
-                mBinding.tvDelete.setTextColor(ColorUtils.getColor(R.color.colorPrimary));
-            }else {
-                mBinding.tvDelete.setEnabled(false);
-                mBinding.tvDelete.setTextColor(ColorUtils.getColor(R.color.disable_text));
+        mBinding.tvAllCheck.setOnClickListener { view: View? ->  //全选
+            FastClickCheckUtil.check(view)
+            for (item in mLocalVideoAdapter.data) {
+                item.isChecked = true
             }
-        });
+            mLocalVideoAdapter!!.notifyDataSetChanged()
+        }
 
-        mBinding.tvDelete.setOnClickListener(view -> {
-            FastClickCheckUtil.check(view);
-            new XPopup.Builder(this)
-                    .isDarkTheme(Utils.isDarkTheme())
-                    .asConfirm("提示","确定删除所选视频吗？",() -> {
-                        List<VideoInfo> data = mLocalVideoAdapter.getData();
-                        List<VideoInfo> deleteList = new ArrayList<>();
-                        for (VideoInfo item : data) {
-                            if (item.isChecked()) {
-                                deleteList.add(item);
-                                if (FileUtils.delete(item.getPath())) {
+        mBinding.tvCancelAllChecked.setOnClickListener { view: View? ->  //取消全选
+            FastClickCheckUtil.check(view)
+            cancelAll()
+        }
+
+        mLocalVideoAdapter.setOnSelectCountListener { count: Int ->
+            mSelectedCount = count
+            if (mSelectedCount > 0) {
+                mBinding.tvDelete.isEnabled = true
+                mBinding.tvDelete.setTextColor(ColorUtils.getColor(R.color.colorPrimary))
+            } else {
+                mBinding.tvDelete.isEnabled = false
+                mBinding.tvDelete.setTextColor(ColorUtils.getColor(R.color.disable_text))
+            }
+        }
+
+        mBinding.tvDelete.setOnClickListener { view: View? ->
+            FastClickCheckUtil.check(view)
+            XPopup.Builder(this)
+                .isDarkTheme(Utils.isDarkTheme())
+                .asConfirm("提示", "确定删除所选视频吗？") {
+                    showLoadingDialog()
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        val data = mLocalVideoAdapter.data
+                        val deleteList: MutableList<VideoInfo> = ArrayList()
+                        for (item in data) {
+                            if (item.isChecked) {
+                                deleteList.add(item)
+                                if (FileUtils.delete(item.path)) {
                                     // 删除缓存的影片时长、进度
-                                    SPUtils.getInstance(CacheConst.VIDEO_DURATION_SP).remove(item.getPath());
-                                    SPUtils.getInstance(CacheConst.VIDEO_PROGRESS_SP).remove(item.getPath());
+                                    SPUtils.getInstance(CacheConst.VIDEO_DURATION_SP).remove(item.path)
+                                    SPUtils.getInstance(CacheConst.VIDEO_PROGRESS_SP).remove(item.path)
                                     // 文件增删需要通知系统扫描,否则删除文件后还能查出来
                                     // 这个工具类直接传文件路径不知道为啥通知失败,手动获取一下
-                                    FileUtils.notifySystemToScan(FileUtils.getDirName(item.getPath()));
+                                    FileUtils.notifySystemToScan(FileUtils.getDirName(item.path))
                                 }
                             }
                         }
-                        data.removeAll(deleteList);
-                        mLocalVideoAdapter.notifyDataSetChanged();
-                        openListSelectMode(false);
-                    }).show();
-        });
-    }
+                        data.removeAll(deleteList)
 
-    private void openListSelectMode(boolean open){
-        mLocalVideoAdapter.setSelectMode(open);
-        mBinding.llMenu.setVisibility(open ? View.VISIBLE : View.GONE);
-        if (!open){// 开启时设置了当前item为选中状态已经刷新了.所以只在关闭刷新列表
-            mLocalVideoAdapter.notifyDataSetChanged();
+                        withContext(Dispatchers.Main){
+                            dismissLoadingDialog()
+                            mLocalVideoAdapter.notifyDataSetChanged()
+                            toggleListSelectMode(false)
+                        }
+                    }
+                }.show()
         }
     }
 
-    private void cancelAll(){
-        for (VideoInfo item : mLocalVideoAdapter.getData()) {
-            item.setChecked(false);
+    private fun toggleListSelectMode(open: Boolean) {
+        mLocalVideoAdapter.setSelectMode(open)
+        mBinding.llMenu.visibility = if (open) View.VISIBLE else View.GONE
+        if (!open) { // 开启时设置了当前item为选中状态已经刷新了.所以只在关闭刷新列表
+            mLocalVideoAdapter.notifyDataSetChanged()
         }
-        mLocalVideoAdapter.notifyDataSetChanged();
-    }
-    @Override
-    public void refresh(RefreshEvent event) {
-        new Handler().postDelayed(this::groupVideos,1000);
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
-        groupVideos();
+    private fun cancelAll() {
+        for (item in mLocalVideoAdapter.data) {
+            item.isChecked = false
+        }
+        mLocalVideoAdapter.notifyDataSetChanged()
+    }
+
+    override fun refresh(event: RefreshEvent) {
+        Handler().postDelayed({ groupVideos() }, 1000)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        groupVideos()
     }
 
     /**
      * 根据文件夹名字筛选视频
      */
-    private void groupVideos(){
-        List<VideoInfo> videoList = Utils.getVideoList();
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            List<VideoInfo> collect = videoList.stream().filter(videoInfo -> videoInfo.getBucketDisplayName().equals(mBucketDisplayName)).collect(Collectors.toList());
-            mLocalVideoAdapter.setNewData(collect);
-        }
+    private fun groupVideos() {
+        val videoList = Utils.getVideoList()
+        val collect = videoList.stream()
+            .filter { videoInfo: VideoInfo -> videoInfo.bucketDisplayName == mBucketDisplayName }
+            .collect(Collectors.toList())
+        mLocalVideoAdapter.setNewData(collect)
     }
 
-    @Override
-    public void onBackPressed() {
-        if (mLocalVideoAdapter.isSelectMode()){
-            if (mSelectedCount>0){
-                cancelAll();
-            }else {
-                openListSelectMode(false);
+    override fun onBackPressed() {
+        if (mLocalVideoAdapter.isSelectMode) {
+            if (mSelectedCount > 0) {
+                cancelAll()
+            } else {
+                toggleListSelectMode(false)
             }
-        }else {
-            super.onBackPressed();
+        } else {
+            super.onBackPressed()
         }
     }
 }
