@@ -40,7 +40,7 @@ public class SearchHelper {
             if (mCheckSourcesForApi == null) mCheckSourcesForApi = new HashMap<>();
             mCheckSourcesForApi.put(api, mCheckSources);
         }
-        FastSearchActivity.setCheckedSourcesForSearch(mCheckSources);
+        FastSearchActivity.Companion.setCheckedSourcesForSearch(mCheckSources);
         Hawk.put(HawkConfig.SOURCES_FOR_SEARCH, mCheckSourcesForApi);
     }
 
