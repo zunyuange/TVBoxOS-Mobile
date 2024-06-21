@@ -5,12 +5,7 @@ import androidx.viewbinding.ViewBinding
 import java.lang.reflect.InvocationTargetException
 import java.lang.reflect.ParameterizedType
 
-/**
- * @Author : Liu XiaoRan
- * @Email : 592923276@qq.com
- * @Date : on 2022/7/7 17:07.
- * @Description :
- */
+
 abstract class BaseVbActivity<T : ViewBinding> : BaseActivity() {
 
     protected lateinit var mBinding: T

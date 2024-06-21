@@ -1,11 +1,5 @@
 package com.github.tvbox.osc.constant;
 
-/**
- * @Author : Liu XiaoRan
- * @Email : 592923276@qq.com
- * @Date : on 2023/8/16 09:53.
- * @Description :
- */
 public class IntentKey {
 
     /**

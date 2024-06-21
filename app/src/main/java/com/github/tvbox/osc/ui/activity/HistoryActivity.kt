@@ -1,117 +1,101 @@
-package com.github.tvbox.osc.ui.activity;
+package com.github.tvbox.osc.ui.activity
 
-import android.graphics.Color;
-import android.os.Bundle;
-import android.view.View;
-import android.view.animation.BounceInterpolator;
-import android.widget.TextView;
+import android.os.Bundle
+import android.view.View
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.GridLayoutManager
+import com.chad.library.adapter.base.BaseQuickAdapter
+import com.github.tvbox.osc.base.BaseVbActivity
+import com.github.tvbox.osc.bean.VodInfo
+import com.github.tvbox.osc.cache.RoomDataManger
+import com.github.tvbox.osc.databinding.ActivityHistoryBinding
+import com.github.tvbox.osc.ui.adapter.HistoryAdapter
+import com.github.tvbox.osc.util.FastClickCheckUtil
+import com.github.tvbox.osc.util.Utils
+import com.lxj.xpopup.XPopup
+import com.owen.tvrecyclerview.widget.V7GridLayoutManager
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
-import androidx.recyclerview.widget.RecyclerView;
-
-import com.blankj.utilcode.util.ToastUtils;
-import com.chad.library.adapter.base.BaseQuickAdapter;
-import com.github.tvbox.osc.R;
-import com.github.tvbox.osc.base.BaseActivity;
-import com.github.tvbox.osc.base.BaseVbActivity;
-import com.github.tvbox.osc.bean.Movie;
-import com.github.tvbox.osc.bean.VodInfo;
-import com.github.tvbox.osc.cache.RoomDataManger;
-import com.github.tvbox.osc.databinding.ActivityHistoryBinding;
-import com.github.tvbox.osc.event.RefreshEvent;
-import com.github.tvbox.osc.ui.adapter.HistoryAdapter;
-import com.github.tvbox.osc.util.FastClickCheckUtil;
-import com.github.tvbox.osc.util.Utils;
-import com.hjq.bar.TitleBar;
-import com.lxj.xpopup.XPopup;
-import com.lxj.xpopup.interfaces.OnConfirmListener;
-import com.owen.tvrecyclerview.widget.TvRecyclerView;
-import com.owen.tvrecyclerview.widget.V7GridLayoutManager;
-
-import org.greenrobot.eventbus.EventBus;
-import org.greenrobot.eventbus.Subscribe;
-import org.greenrobot.eventbus.ThreadMode;
-
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * @author pj567
- * @date :2021/1/7
- * @description:
- */
-public class HistoryActivity extends BaseVbActivity<ActivityHistoryBinding> {
-    private HistoryAdapter historyAdapter;
-
-    @Override
-    protected void init() {
-        initView();
-        initData();
+class HistoryActivity : BaseVbActivity<ActivityHistoryBinding>() {
+    private var historyAdapter: HistoryAdapter? = null
+    override fun init() {
+        initView()
+        initData()
     }
 
-    private void initView() {
+    private fun initView() {
+        setLoadSir(mBinding.mGridView)
 
-        mBinding.mGridView.setHasFixedSize(true);
-        mBinding.mGridView.setLayoutManager(new V7GridLayoutManager(this.mContext, 3));
-        historyAdapter = new HistoryAdapter();
-        mBinding.mGridView.setAdapter(historyAdapter);
-        historyAdapter.setOnItemLongClickListener((BaseQuickAdapter.OnItemLongClickListener) (adapter, view, position) -> {
-            FastClickCheckUtil.check(view);
-            VodInfo vodInfo = historyAdapter.getData().get(position);
-            if (vodInfo != null) {
-                historyAdapter.remove(position);
-                RoomDataManger.deleteVodRecord(vodInfo.sourceKey, vodInfo);
-                if (historyAdapter.getData().isEmpty()){
-                    mBinding.topTip.setVisibility(View.GONE);
+        mBinding.mGridView.setHasFixedSize(true)
+        mBinding.mGridView.setLayoutManager(GridLayoutManager(this, 3))
+        historyAdapter = HistoryAdapter()
+        mBinding.mGridView.setAdapter(historyAdapter)
+
+        historyAdapter!!.onItemLongClickListener =
+            BaseQuickAdapter.OnItemLongClickListener { _: BaseQuickAdapter<*, *>?, view: View?, position: Int ->
+                FastClickCheckUtil.check(view)
+                val vodInfo = historyAdapter!!.data[position]
+                historyAdapter!!.remove(position)
+                RoomDataManger.deleteVodRecord(vodInfo.sourceKey, vodInfo)
+                if (historyAdapter!!.data.isEmpty()) {
+                    mBinding.topTip.visibility = View.GONE
                 }
-            } else {
-                ToastUtils.showLong("未查询到该条记录,请重试或清空全部记录");
+                true
             }
-            return true;
-        });
 
-        mBinding.titleBar.getRightView().setOnClickListener(view -> {
-            new XPopup.Builder(this)
-                    .isDarkTheme(Utils.isDarkTheme())
-                    .asConfirm("提示", "确定清空?", () -> {
-                        RoomDataManger.deleteVodRecordAll();
-                        historyAdapter.setNewData(new ArrayList<>());
-                        mBinding.topTip.setVisibility(View.GONE);
-                    }).show();
-        });
+        mBinding.titleBar.rightView.setOnClickListener { view: View? ->
+            XPopup.Builder(this)
+                .isDarkTheme(Utils.isDarkTheme())
+                .asConfirm("提示", "确定清空?") {
 
-        historyAdapter.setOnItemClickListener((adapter, view, position) -> {
-            FastClickCheckUtil.check(view);
-            VodInfo vodInfo = historyAdapter.getData().get(position);
-            if (vodInfo != null) {
-                Bundle bundle = new Bundle();
-                bundle.putString("id", vodInfo.id);
-                bundle.putString("sourceKey", vodInfo.sourceKey);
-                jumpActivity(DetailActivity.class, bundle);
-            } else {
-                ToastUtils.showShort("记录失效,请重新点播");
+                    showLoadingDialog()
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        RoomDataManger.deleteVodRecordAll()
+                        // 在主线程更新数据
+                        withContext(Dispatchers.Main) {
+                            dismissLoadingDialog()
+                            historyAdapter!!.setNewData(ArrayList())
+                            mBinding.topTip.visibility = View.GONE
+                            showEmpty()
+                        }
+                    }
+
+                }.show()
+        }
+
+        historyAdapter!!.onItemClickListener =
+            BaseQuickAdapter.OnItemClickListener { _: BaseQuickAdapter<*, *>?, view: View?, position: Int ->
+                FastClickCheckUtil.check(view)
+                val vodInfo = historyAdapter!!.data[position]
+                val bundle = Bundle()
+                bundle.putString("id", vodInfo.id)
+                bundle.putString("sourceKey", vodInfo.sourceKey)
+                jumpActivity(DetailActivity::class.java, bundle)
             }
-        });
     }
 
-    private void initData() {
-        List<VodInfo> allVodRecord = RoomDataManger.getAllVodRecord(100);
-        List<VodInfo> vodInfoList = new ArrayList<>();
-        for (VodInfo vodInfo : allVodRecord) {
-            if (vodInfo.playNote != null && !vodInfo.playNote.isEmpty())
-                vodInfo.note = vodInfo.playNote;
-            vodInfoList.add(vodInfo);
-        }
-        historyAdapter.setNewData(vodInfoList);
-        if (!vodInfoList.isEmpty()){
-            mBinding.topTip.setVisibility(View.VISIBLE);
-        }
-    }
+    private fun initData() {
 
+        lifecycleScope.launch(Dispatchers.IO) {
+            val allVodRecord = RoomDataManger.getAllVodRecord(100)
+            val vodInfoList: MutableList<VodInfo> = ArrayList()
+            for (vodInfo in allVodRecord) {
+                if (vodInfo.playNote != null && vodInfo.playNote.isNotEmpty()) vodInfo.note =
+                    vodInfo.playNote
+                vodInfoList.add(vodInfo)
+            }
 
-    @Subscribe(threadMode = ThreadMode.MAIN)
-    public void refresh(RefreshEvent event) {
-        if (event.type == RefreshEvent.TYPE_HISTORY_REFRESH) {
-            initData();
+            withContext(Dispatchers.Main) {
+                historyAdapter!!.setNewData(vodInfoList)
+                if (vodInfoList.isNotEmpty()) {
+                    showSuccess()
+                    mBinding.topTip.visibility = View.VISIBLE
+                } else {
+                    showEmpty()
+                }
+            }
         }
     }
 }
