@@ -41,6 +41,7 @@ import androidx.recyclerview.widget.DiffUtil;
 import com.blankj.utilcode.util.ColorUtils;
 import com.blankj.utilcode.util.GsonUtils;
 import com.blankj.utilcode.util.LogUtils;
+import com.blankj.utilcode.util.RegexUtils;
 import com.blankj.utilcode.util.ScreenUtils;
 import com.blankj.utilcode.util.SpanUtils;
 import com.blankj.utilcode.util.ToastUtils;
@@ -1644,7 +1645,7 @@ public class PlayFragment extends BaseLazyFragment {
     }
 
     public String getFinalUrl(){
-        return TextUtils.isEmpty(mCurrentUrl)?"":mCurrentUrl;
+        return TextUtils.isEmpty(mCurrentUrl) || !RegexUtils.isURL(mCurrentUrl) ?"":mCurrentUrl;
     }
 
     boolean checkVideoFormat(String url) {
