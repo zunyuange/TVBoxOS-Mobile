@@ -8,4 +8,17 @@ data class DoubanSuggestBean(
     var url: String,
     var type: String,
     var year: String,
-)
+){
+    var doubanRating: String? = null
+        get() {
+            return field?:""
+        }
+    var imdbRating: String? = null
+        get() {
+            return field?:""
+        }
+    var rottenRating: String? = null
+        get() {
+            return field?:""
+        }
+}

@@ -597,7 +597,7 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
     }
 
     private fun getDoubanSuggest(text: String) {
-        OkGo.get<String>("https://movie.douban.com/j/subject_suggest?q="+text)
+        OkGo.get<String>("https://movie.douban.com/j/subject_suggest?q="+text.trim())
             .execute(object : StringCallback(){
                 override fun onSuccess(response: com.lzy.okgo.model.Response<String>?) {
                     val list = GsonUtils.fromJson<List<DoubanSuggestBean>>(
@@ -605,9 +605,18 @@ class FastSearchActivity : BaseVbActivity<ActivityFastSearchBinding>(), TextWatc
                         object : TypeToken<List<DoubanSuggestBean>>() {}.type
                     )
 
+                    //暂时只保留第一个,分数查询接口有限制
+                    val filterList = list.filter {
+                        it.title == text
+                    }
+                    if (filterList.isEmpty()){
+                        ToastUtils.showShort("暂无评分信息")
+                        return
+                    }
+
                     XPopup.Builder(this@FastSearchActivity)
                         .maxHeight(ScreenUtils.getScreenHeight() - (ScreenUtils.getScreenHeight() / 4))
-                        .asCustom(DoubanSuggestDialog(this@FastSearchActivity,list))
+                        .asCustom(DoubanSuggestDialog(this@FastSearchActivity,filterList.subList(0,1)))
                         .show()
                 }
             })

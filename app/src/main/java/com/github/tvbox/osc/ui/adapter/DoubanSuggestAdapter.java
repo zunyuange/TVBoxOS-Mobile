@@ -27,14 +27,15 @@ public class DoubanSuggestAdapter extends BaseQuickAdapter<DoubanSuggestBean, Ba
 
     @Override
     protected void convert(BaseViewHolder helper, DoubanSuggestBean item) {
-        helper.setText(R.id.tvName,item.getTitle());
+        helper.setText(R.id.tvName,item.getTitle())
+                .setText(R.id.tvRating,"豆瓣: "+item.getDoubanRating()+"\n烂番茄: "+item.getRottenRating()+"\nIMDB: "+item.getImdbRating());
 
         Picasso.get()
                 .load(item.getImg())
                 .transform(new RoundTransformation(MD5.string2MD5(item.getImg() + "position=" + helper.getLayoutPosition()))
                         .centerCorp(true)
                         .override(AutoSizeUtils.dp2px(mContext, 110), AutoSizeUtils.dp2px(mContext, 160))
-                        .roundRadius(AutoSizeUtils.dp2px(mContext, 20), RoundTransformation.RoundType.ALL))
+                        .roundRadius(AutoSizeUtils.dp2px(mContext, 6), RoundTransformation.RoundType.ALL))
                 .placeholder(R.drawable.img_loading_placeholder)
                 .error(R.drawable.img_loading_placeholder)
                 .into((ImageView) helper.getView(R.id.ivThumb));
